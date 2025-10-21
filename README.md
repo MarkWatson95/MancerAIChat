@@ -1,3 +1,15 @@
+
+Hey, I made this application to help me interface with an AI chat API with my phone.
+Uploading this to GitHub to show that yes, I do in fact program in my free time and am trying to use and grow my skills in a practical way.
+If you are an interviewer looking at this, then thank you for taking the time to check out my code!
+This program was made in 2024ish, but has received minor updates with time to deal with Mancer's changing API standards.
+--Michael Mark Watson
+How to launch Expo GO
+npx expo start -c --tunnel
+How to create apk:
+npx expo run:android --variant release
+
+
 # Welcome to your Expo app 👋
 
 This is an [Expo](https://expo.dev) project created with [`create-expo-app`](https://www.npmjs.com/package/create-expo-app).
