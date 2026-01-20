@@ -41,3 +41,6 @@ app-example
 # generated native folders
 /ios
 /android
+
+# local release artifact - do not commit
+app-release.apk

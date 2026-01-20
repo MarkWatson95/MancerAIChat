@@ -1,3 +1,40 @@
+
+Hey, I made this application to help me interface with an AI chat API with my phone.
+Uploading this to GitHub to show that yes, I do in fact program in my free time and am trying to use and grow my skills in a practical way.
+If you are an interviewer looking at this, then thank you for taking the time to check out my code!
+This program was made in 2024ish, but has received minor updates with time to deal with Mancer's changing API standards.
+--Michael Mark Watson
+How to launch Expo GO
+npx expo start -c --tunnel
+
+How to create a local release APK (simple)
+
+Option A — Gradle (recommended, minimal):
+
+```powershell
+cd android
+.\gradlew assembleRelease
+```
+
+Produced APK (build output): `android/app/build/outputs/apk/release/app-release.apk`
+You can copy it to the project root with:
+
+```powershell
+Copy-Item android\app\build\outputs\apk\release\app-release.apk .\app-release.apk -Force
+```
+
+Option B — Expo CLI (alternative):
+
+```powershell
+npx expo run:android --variant release
+```
+
+Note: These produce an unsigned release APK unless you configure signing (keystore + `key.properties` + signingConfig). A signed APK is required for publishing to Google Play.
+
+In this repository a release APK was built and copied to the repo root as `app-release.apk`.
+
+
+
 # Welcome to your Expo app 👋
 
 This is an [Expo](https://expo.dev) project created with [`create-expo-app`](https://www.npmjs.com/package/create-expo-app).

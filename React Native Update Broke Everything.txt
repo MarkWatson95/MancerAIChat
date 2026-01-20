@@ -1,0 +1,24 @@
+
+What was changed using AI assistant (short):
+
+- Disabled React Native "new architecture" for Android (legacy mode). I updated `app.json` to set `newArchEnabled: false` to match `android/gradle.properties`.
+- Removed references to `react-native-reanimated` and `react-native-worklets` from the project dependencies, then cleaned and reinstalled node modules so the lockfile matches `package.json`.
+- Cleaned Android build artifacts (`./gradlew clean`) to remove stale build intermediates that still referenced the removed native modules.
+
+Build / current state:
+
+- A release APK was previously produced (app-release.apk) using the legacy architecture. With the current repository state the project builds reproducibly in legacy mode.
+- I ran a clean npm install and a Gradle clean in this workspace; `package.json` no longer lists Reanimated/worklets and native build is configured to use the old architecture.
+
+Notes & recommendations:
+
+- Keep your API key out of source. (It was removed from `app/InputWithButton.js`.) Use environment variables or Expo secrets before pushing to GitHub.
+- Commit the updated `app.json` and regenerated `package-lock.json` so the repository matches the working state.
+- To produce a release APK locally: either `npx expo run:android --variant release` or `cd android && .\gradlew assembleRelease`. Configure signing if you need a Play-store-ready signed APK.
+
+If you want me to follow up:
+
+- I can (A) run the Gradle assembleRelease here and, if successful, copy the APK to a backup path you specify, or (B) just commit the clean files and add a short README note documenting this state.
+
+Date: 2026-01-19
+Edited by: automated assistant (changes made to align project files and clean deps/build artifacts)
