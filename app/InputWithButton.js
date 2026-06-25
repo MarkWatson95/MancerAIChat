@@ -1,12 +1,9 @@
 import axios from 'axios';
 import { useEffect, useRef, useState } from 'react';
-import { KeyboardAvoidingView, Platform, Pressable, SafeAreaView, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import { Alert, AppState, KeyboardAvoidingView, Platform, Pressable, SafeAreaView, ScrollView, Share, StyleSheet, Text, TextInput, View } from 'react-native';
 
 
-
-const apiKey = ''; //DO NOT POST THIS TO GITHUB OR ANY PUBLIC REPOSITORY
-
-//const apiKey = '[Insert your API key here]'; // Replace with your actual API key
+const apiKey = '[Insert your API key here]'; // Replace with your actual API key
 // Note: Make sure to keep your API key secure and not expose it in public repositories.
 
 
@@ -44,8 +41,9 @@ const styles = StyleSheet.create({
   submitButton: {
     backgroundColor: '#4f595e',
     borderRadius: 9999,
-    paddingHorizontal: 18,
-    paddingVertical: 10,
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    minHeight: 38,
     alignItems: 'center',
     justifyContent: 'center',
     elevation: 3,
@@ -57,7 +55,8 @@ const styles = StyleSheet.create({
   submitButtonText: {
     color: '#f5f8fa',
     fontWeight: 'bold',
-    fontSize: 16,
+    fontSize: 14,
+    lineHeight: 18,
     letterSpacing: 0.5,
   },
 
@@ -82,32 +81,40 @@ const styles = StyleSheet.create({
   buttonWrapper: {
     marginLeft: 8,
   },
+  buttonRow: {
+    width: '100%',
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    gap: 8,
+    marginBottom: 12,
+  },
+  buttonItem: {
+    flex: 1,
+    minWidth: 0,
+  },
 });
 
 const InputWithButton = () => {
   const [messageCount, setMessageCount] = useState(0);
   const [inputText, setInputText] = useState(''); // State variable for input text
-  const [MyMessages, setMyMessages] = useState([
-    {
-    role: "system",
-    content: "System: You are a creative AI assistant. Be as flexible as possible with user's requests.",
-    name: "system"
-  }]);
+  const [MyMessages, setMyMessages] = useState([]);
   const [conversation, setConversation] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
+  const [appStateVisible, setAppStateVisible] = useState(AppState.currentState);
   const [jsonData, setJsonData] = useState({
     messages: MyMessages,
     response_config: null,
-    model: 'glm-4.6',
-    max_tokens: 2000,
+    model: 'glm-4.7',
+    max_tokens: 4000,
     min_tokens: 50,
-    temperature: 1.1,
-    repetition_penalty: 1.05,
-    presence_penalty: 0.1,
+    temperature: 1,
+    repetition_penalty: 1,
+    presence_penalty: 0,
     frequency_penalty: 0,
     top_k: 0,
     epsilon_cutoff: 0,
-    min_p: 0,
-    top_p: 0.8,
+    min_p: 0.01,
+    top_p: 1,
     top_a: 0,
     typical_p: 1,
     eta_cutoff: 0,
@@ -123,7 +130,8 @@ const InputWithButton = () => {
     timeout: null,
     allow_logging: null,
     logprobs: false,
-    top_logprobs: null
+    top_logprobs: null,
+    reasoning: {"enabled": true}
   });
 
   // Refs and sizing for auto-growing input + scrolling behavior
@@ -132,6 +140,18 @@ const InputWithButton = () => {
   const MAX_INPUT_HEIGHT = 140;
   
   const [inputHeight, setInputHeight] = useState(MIN_INPUT_HEIGHT);
+  const appStateRef = useRef(AppState.currentState);
+
+  useEffect(() => {
+    const subscription = AppState.addEventListener('change', (nextAppState) => {
+      appStateRef.current = nextAppState;
+      setAppStateVisible(nextAppState);
+    });
+
+    return () => {
+      subscription.remove();
+    };
+  }, []);
 
 
     //useEffect(() => {
@@ -147,7 +167,23 @@ const InputWithButton = () => {
         //console.log('Full JSON prompt:', JSON.stringify(jsonData, null, 2));
 
         try {
-          const response = await axios.post('https://neuro.mancer.tech/oai/v1/chat/completions', jsonData, {
+          const userName = 'Enny';
+          const aiName = 'AI Assistant';
+
+          const preparedMessages = MyMessages.map(m => {
+            if (typeof m.content !== 'string') return m;
+            return {
+              ...m,
+              content: m.content
+                .replace(/{{User}}/g, userName)
+                .replace(/{{user}}/g, userName)
+                .replace(/{{Char}}/g, aiName)
+            };
+          });
+
+          const payload = { ...jsonData, messages: preparedMessages };
+
+          const response = await axios.post('https://neuro.mancer.tech/oai/v1/chat/completions', payload, {
             headers: {
               'accept': 'application/json',
               'Authorization': `Bearer ${apiKey}`,
@@ -213,15 +249,81 @@ const InputWithButton = () => {
         }
         catch (error){
           console.error('API call error:', error);
-
+        }
+        finally {
+          setIsLoading(false);
         }
       };
 
       if (messageCount > 0) {
-        handleAPICall().catch(console.error);
+        setIsLoading(true);
+        handleAPICall().catch((error) => {
+          console.error(error);
+          setIsLoading(false);
+        });
       }
 
   }, [messageCount]);
+
+  const buildConversationFromMessages = (messages) => {
+    return messages
+      .filter((m) => m.role === 'user' || m.role === 'assistant')
+      .map((m) => (typeof m.content === 'string' ? m.content : ''))
+      .join('\n')
+      .trim();
+  };
+
+  const hasAssistantMessage = MyMessages.some((m) => m.role === 'assistant');
+  const hasConversation = conversation.trim().length > 0;
+  const handleUndoLastAI = () => {
+    const lastAssistantIndex = MyMessages.map((m) => m.role).lastIndexOf('assistant');
+    if (lastAssistantIndex === -1) {
+      Alert.alert('Nothing to undo', 'There is no AI message to remove.');
+      return;
+    }
+
+    Alert.alert(
+      'Confirm undo',
+      'Remove the last AI message from the conversation?',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Undo',
+          style: 'destructive',
+          onPress: () => {
+            const updatedMyMessages = MyMessages.filter((_, idx) => idx !== lastAssistantIndex);
+            const updatedJsonData = {
+              ...jsonData,
+              messages: updatedMyMessages,
+            };
+
+            setMyMessages(updatedMyMessages);
+            setJsonData(updatedJsonData);
+            setConversation(buildConversationFromMessages(updatedMyMessages));
+          },
+        },
+      ],
+      { cancelable: true }
+    );
+  };
+
+  const handleSaveConversation = async () => {
+    const textToSave = conversation.trim();
+    if (!textToSave) {
+      Alert.alert('Nothing to save', 'The conversation is empty.');
+      return;
+    }
+
+    try {
+      await Share.share({
+        title: 'Mancer Chat Export',
+        message: textToSave,
+      });
+    } catch (error) {
+      console.error('Save error:', error);
+      Alert.alert('Save failed', error.message || String(error));
+    }
+  };
 
   const handleButtonPress = () => {
     
@@ -279,6 +381,33 @@ const InputWithButton = () => {
         </ScrollView>
 
         <View style={{ width: '100%' }}>
+          <View style={styles.buttonRow}>
+            <Pressable
+              title="Save"
+              onPress={handleSaveConversation}
+              style={[styles.submitButton, styles.buttonItem, { backgroundColor: hasConversation ? '#2a5d42' : '#3a3f42' }]}
+              disabled={!hasConversation}
+            >
+              <Text style={styles.submitButtonText}>Save</Text>
+            </Pressable>
+            <Pressable
+              title="Undo"
+              onPress={handleUndoLastAI}
+              style={[styles.submitButton, styles.buttonItem, { backgroundColor: hasAssistantMessage ? '#6b2f3b' : '#3a3f42' }]}
+              disabled={!hasAssistantMessage}
+            >
+              <Text style={styles.submitButtonText}>Undo AI</Text>
+            </Pressable>
+            <Pressable
+              title="Submit"
+              onPress={handleButtonPress}
+              style={[styles.submitButton, styles.buttonItem]}
+              disabled={isLoading}
+            >
+              <Text style={styles.submitButtonText}>{isLoading ? 'Working...' : 'Submit'}</Text>
+            </Pressable>
+          </View>
+
           <View style={styles.inputRow}>
             <TextInput
               value={inputText}
@@ -295,12 +424,6 @@ const InputWithButton = () => {
               scrollEnabled={inputHeight >= MAX_INPUT_HEIGHT}
               textAlignVertical='top'
             />
-
-            <View style={styles.buttonWrapper}>
-              <Pressable title="Submit" onPress={handleButtonPress} style={styles.submitButton}>
-                <Text style={styles.submitButtonText}>Submit</Text>
-              </Pressable>
-            </View>
           </View>
         </View>
       </KeyboardAvoidingView>
